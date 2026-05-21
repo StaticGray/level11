@@ -3,46 +3,63 @@
 #include <string.h>
 
 #include "md5.h"
-
-#if __has_include("fileutil.h")
 #include "fileutil.h"
-#endif
 
-#define PASS_LEN 50     // Maximum length any password will be.
-#define HASH_LEN 33     // Length of hash plus one for null.
+#define PASS_LEN 50
+#define HASH_LEN 33
 
+void trim_newline(char str[]);
 
-int main(int argc, char *argv[])
-{
-    if (argc < 3) 
-    {
+int main(int argc, char *argv[]) {
+    if (argc < 3) {
         printf("Usage: %s hash_file dictionary_file\n", argv[0]);
-        exit(1);
+        return 1;
     }
 
-    // TODO: Read the hashes file into an array.
-    //   Use either a 2D array or an array of arrays.
-    //   Use the loadFile function from fileutil.c
-    //   Uncomment the appropriate statement.
+    /*============ LOAD HASH FILE ============*/
+
     int size;
-    //char (*hashes)[HASH_LEN] = loadFile(argv[1], &size);
-    //char **hashes = loadFile(argv[1], &size);
-    
-    // CHALLENGE1: Sort the hashes using qsort.
-    
-    // TODO
-    // Open the password file for reading.
+    int found = 0;
+    char **hashes = loadFileAA(argv[1], &size);
 
-    // TODO
-    // For each password, hash it, then use the array search
-    // function from fileutil.h to find the hash.
-    // If you find it, display the password and the hash.
-    // Keep track of how many hashes were found.
-    // CHALLENGE1: Use binary search instead of linear search.
+    /*============ OPEN DICTIONARY FILE ============*/
 
-    // TODO
-    // When done with the file:
-    //   Close the file
-    //   Display the number of hashes found.
-    //   Free up memory.
+    FILE *dict_fp = fopen(argv[2], "r");
+
+    if (dict_fp == NULL) {
+
+        printf("Could not open dictionary file.\n");
+        freeAA(hashes, size);
+        return 1;
+    }
+
+    /*============ CRACK LOOP ============*/
+
+    char password[PASS_LEN];
+
+    while (fgets(password, sizeof(password), dict_fp)) {
+
+        trim_newline(password);
+        char *hash = md5(password, strlen(password));
+
+        if (exactSearchAA(hash, hashes, size) != NULL) {
+            printf("%s -> %s\n", password, hash);
+            found++;
+        }
+        free(hash);
+    }
+
+    /*============ CLEANUP ============*/
+
+    fclose(dict_fp);
+    freeAA(hashes, size);
+    printf("Hashes cracked: %d\n", found);
+
+    return 0;
+}
+
+/*============ TRIM NEWLINE ============*/
+
+void trim_newline(char str[]) {
+    str[strcspn(str, "\r\n")] = '\0';
 }
